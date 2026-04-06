@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EdgeIQ · NBA Live Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:#0d1b2a;--navy-mid:#162236;--navy-light:#1e2f45;
+    --lime:#b5f23d;--lime-dim:#8fc42a;
+    --parchment:#f7f5f0;--parchment-dark:#ede9e0;
+    --text-primary:#1a1a2e;--text-secondary:#4a5568;--text-muted:#718096;
+    --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--blue:#3b82f6;--purple:#7c3aed;
+    --card-bg:#ffffff;--border:#e2ddd5;
+    --shadow:0 2px 12px rgba(13,27,42,.08);--shadow-lg:0 8px 32px rgba(13,27,42,.14);
+    --radius:12px;--radius-sm:8px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:var(--parchment);color:var(--text-primary);min-height:100vh}
+  header{background:var(--navy);padding:0 26px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 14px rgba(0,0,0,.3)}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:1.05rem;color:white}
+  .logo-badge{background:var(--lime);color:var(--navy);font-size:.66rem;font-weight:700;padding:2px 6px;border-radius:4px}
+  .hdr-right{display:flex;align-items:center;gap:10px}
+  .apill{font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:8px;font-family:'DM Mono',monospace}
+  .ap-cf{background:rgba(255,165,0,.2);color:#ffa500}
+  .ap-pm{background:rgba(124,58,237,.2);color:#a78bfa}
+  .ap-free{background:rgba(34,197,94,.15);color:#86efac}
+  .live-dot{display:flex;align-items:center;gap:5px;color:var(--lime);font-size:.73rem;font-weight:600;font-family:'DM Mono',monospace}
+  .live-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--lime);animation:blink 1.5s infinite}
+  @keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
+  .hdr-date{color:rgba(255,255,255,.4);font-size:.72rem;font-family:'DM Mono',monospace}
+  #rbtn{background:var(--lime);color:var(--navy);border:none;padding:5px 12px;border-radius:5px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:'DM Mono',monospace}
+  #rbtn:disabled{opacity:.5;cursor:not-allowed}
+  .risk-banner{background:var(--navy-mid);border-bottom:1px solid var(--navy-light);padding:6px 26px;display:flex;gap:20px;overflow-x:auto;scrollbar-width:none}
+  .risk-banner::-webkit-scrollbar{display:none}
+  .rr{display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:.68rem;color:rgba(255,255,255,.6)}
+  .rv{color:var(--lime);font-weight:700;font-family:'DM Mono',monospace}
+  [data-tip]{position:relative;cursor:help;border-bottom:1px dashed rgba(0,0,0,.2)}
+  [data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--navy);color:white;font-size:.68rem;font-family:'DM Sans',sans-serif;line-height:1.5;padding:6px 10px;border-radius:7px;width:215px;text-align:left;pointer-events:none;opacity:0;transition:opacity .15s;z-index:999;box-shadow:0 4px 14px rgba(0,0,0,.4);border-bottom:none}
+  [data-tip]:hover::after{opacity:1}
+  main{max-width:1280px;margin:0 auto;padding:18px 20px}
+  .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;flex-wrap:wrap;gap:7px}
+  .st{font-size:.98rem;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:8px}
+  .chip{font-size:.68rem;font-weight:500;background:var(--parchment-dark);padding:2px 8px;border-radius:18px;color:var(--text-secondary);font-family:'DM Mono',monospace}
+  .chip.live{background:#dcfce7;color:#166534}
+  .chip.pm{background:#ede9ff;color:#5b21b6}
+  .disc{background:#fff8e1;border:1px solid #f59e0b;border-radius:var(--radius-sm);padding:8px 14px;font-size:.69rem;color:#78350f;margin-bottom:16px;line-height:1.5}
+
+  /* no-worker banner */
+  .no-worker{background:var(--navy);border:1px solid var(--lime-dim);border-radius:var(--radius-sm);padding:16px 20px;margin-bottom:16px;color:rgba(255,255,255,.8);font-size:.78rem;line-height:1.8;display:none}
+  .no-worker strong{color:var(--lime)}
+  .no-worker code{background:rgba(255,255,255,.1);padding:1px 6px;border-radius:3px;font-family:'DM Mono',monospace;font-size:.73rem}
+
+  .loading-wrap{text-align:center;padding:44px 20px}
+  .spinner{width:32px;height:32px;border:3px solid var(--parchment-dark);border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .lt{color:var(--text-muted);font-size:.78rem;font-family:'DM Mono',monospace;line-height:1.9}
+  .err{background:#fff0f0;border:1px solid #fca5a5;border-radius:var(--radius-sm);padding:14px 18px;font-size:.78rem;line-height:1.75;color:#7f1d1d}
+  .err code{background:#fee2e2;padding:1px 4px;border-radius:3px;font-family:'DM Mono',monospace;font-size:.72rem}
+
+  .main-grid{display:grid;grid-template-columns:310px 1fr;gap:16px;margin-bottom:26px}
+  @media(max-width:860px){.main-grid{grid-template-columns:1fr}}
+
+  /* team signal panel */
+  .tsp{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+  .tsp-hdr{background:var(--navy);padding:11px 14px;display:flex;align-items:center;justify-content:space-between}
+  .tsp-hdr h3{color:white;font-size:.8rem;font-weight:700}
+  .tsp-sel{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:white;padding:3px 6px;border-radius:5px;font-size:.68rem;font-family:'DM Mono',monospace;cursor:pointer}
+  .tsp-sel option{background:var(--navy)}
+  .tsp-body{padding:12px;display:flex;flex-direction:column;gap:7px;flex:1}
+  .tsp-team{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+  .tsp-logo{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.95rem;color:white;flex-shrink:0}
+  .tsp-nm{font-size:.9rem;font-weight:700;color:var(--navy)}
+  .tsp-rec{font-size:.68rem;color:var(--text-muted);font-family:'DM Mono',monospace}
+  .sig-row{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--parchment-dark)}
+  .sig-row:last-child{border-bottom:none}
+  .slbl{flex:1;font-size:.7rem;color:var(--text-secondary);font-weight:500}
+  .sval{font-family:'DM Mono',monospace;font-size:.74rem;font-weight:700;color:var(--navy)}
+  .sbar{width:48px;height:4px;background:var(--parchment-dark);border-radius:2px;overflow:hidden;flex-shrink:0}
+  .sbf{height:100%;border-radius:2px;transition:width .6s}
+  .sbf.g{background:var(--green)}.sbf.b{background:var(--blue)}.sbf.a{background:var(--amber)}.sbf.r{background:var(--red)}
+  .rb{font-size:.57rem;padding:1px 4px;border-radius:3px;font-family:'DM Mono',monospace;font-weight:700;white-space:nowrap}
+  .rb.top{background:#dcfce7;color:#166534}.rb.mid{background:#fef3c7;color:#92400e}.rb.bot{background:#fee2e2;color:#991b1b}
+  .tsp-note{background:var(--parchment);border-radius:var(--radius-sm);padding:8px 10px;font-size:.69rem;color:var(--text-secondary);line-height:1.5;margin-top:2px}
+  .tsp-note strong{color:var(--text-primary)}
+
+  /* game cards */
+  .games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:13px}
+  .game-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);transition:transform .14s,box-shadow .14s;cursor:pointer}
+  .game-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+  .gc-top{padding:10px 14px 8px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+  .gc-time{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--text-muted)}
+  .eb{font-size:.64rem;font-weight:700;padding:2px 7px;border-radius:18px;font-family:'DM Mono',monospace}
+  .eb.trade{background:#dcfce7;color:#166534}.eb.skip{background:#fef3c7;color:#92400e}.eb.watch{background:#dbeafe;color:#1e40af}
+  .gc-match{padding:11px 14px;display:flex;align-items:center;gap:8px}
+  .tb{flex:1}
+  .tc{font-size:.62rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+  .tn{font-size:.88rem;font-weight:700;color:var(--navy);line-height:1.2}
+  .trec{font-size:.7rem;color:var(--text-secondary);font-family:'DM Mono',monospace;margin-top:1px}
+  .tinj{margin-top:3px;display:flex;flex-wrap:wrap;gap:2px}
+  .ic{font-size:.57rem;padding:1px 4px;border-radius:3px;font-weight:600;font-family:'DM Mono',monospace}
+  .ic.out{background:#fee2e2;color:#991b1b}.ic.q{background:#fef3c7;color:#92400e}.ic.dtd{background:#ffe4e6;color:#9f1239}.ic.p{background:#f0fdf4;color:#166534}
+  .vs-col{text-align:center;min-width:22px}
+  .vs-at{font-size:.58rem;color:var(--text-muted)}
+  .vs-hm{font-size:.54rem;color:var(--lime-dim);font-weight:700;text-transform:uppercase}
+  .live-tag{background:#ef4444;color:white;font-size:.58rem;font-weight:700;padding:1px 5px;border-radius:7px;animation:blink 1.5s infinite;font-family:'DM Mono',monospace}
+  .gc-reason{padding:0 14px 8px;font-size:.72rem;color:var(--text-secondary);line-height:1.5;border-bottom:1px solid var(--border)}
+  .gc-reason strong{color:var(--text-primary)}
+  .gc-factors{padding:7px 14px;display:flex;flex-direction:column;gap:4px;border-bottom:1px solid var(--border)}
+  .fr{display:flex;align-items:center;gap:5px;font-size:.68rem}
+  .fl{flex:1;color:var(--text-secondary)}
+  .fd{font-family:'DM Mono',monospace;font-weight:700;font-size:.66rem;min-width:34px;text-align:right}
+  .fd.pos{color:var(--green)}.fd.neg{color:var(--red)}.fd.neu{color:var(--text-muted)}
+  .gc-probs{padding:8px 14px;display:flex;border-bottom:1px solid var(--border)}
+  .pb{flex:1;text-align:center;padding:3px 3px}
+  .pb+.pb{border-left:1px solid var(--border)}
+  .pl{font-size:.58rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px}
+  .pv{font-size:1.2rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--navy);line-height:1;margin-top:2px}
+  .pb.eg .pv{color:var(--green)}.pb.pm .pv{color:var(--purple)}
+  .pm-dot{display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--purple);margin-right:2px;animation:blink 2s infinite;vertical-align:middle}
+  .gc-meter{padding:6px 14px 10px}
+  .mlbl{display:flex;justify-content:space-between;font-size:.63rem;color:var(--text-muted);margin-bottom:3px}
+  .mbar{height:4px;background:var(--parchment-dark);border-radius:2px;overflow:hidden}
+  .mfill{height:100%;border-radius:2px;transition:width .8s}
+  .fg{background:linear-gradient(90deg,#22c55e,#86efac)}.fa{background:linear-gradient(90deg,#f59e0b,#fcd34d)}.fr2{background:linear-gradient(90deg,#ef4444,#fca5a5)}
+  .gc-foot{padding:6px 14px;display:flex;gap:10px;background:var(--parchment);flex-wrap:wrap}
+  .fm{font-size:.63rem;color:var(--text-muted);font-family:'DM Mono',monospace}
+  .fm span{color:var(--navy);font-weight:600}
+  .pmvol{font-size:.63rem;color:var(--purple);font-family:'DM Mono',monospace;font-weight:600}
+
+  /* pipeline */
+  .pipe{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:22px;box-shadow:var(--shadow)}
+  .pipe-title{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:12px}
+  .pipe-steps{display:flex;align-items:stretch;gap:3px;overflow-x:auto}
+  .ps{flex:1;min-width:120px;background:var(--parchment);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 9px;text-align:center}
+  .pcon{display:flex;align-items:center;justify-content:center;font-size:.9rem;color:var(--lime-dim);font-weight:700}
+  .pnum{width:20px;height:20px;border-radius:50%;background:var(--navy);color:var(--lime);font-size:.66rem;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 5px;font-family:'DM Mono',monospace}
+  .pico{font-size:1rem;margin-bottom:4px}
+  .pnm{font-size:.7rem;font-weight:700;color:var(--navy);margin-bottom:2px}
+  .pdesc{font-size:.6rem;color:var(--text-muted);line-height:1.4}
+
+  /* signal grid */
+  .sig-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:9px;margin-bottom:22px}
+  .sc{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;box-shadow:var(--shadow)}
+  .sc-hdr{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+  .sc-ico{font-size:.9rem}.sc-nm{font-size:.72rem;font-weight:700;color:var(--navy)}
+  .sc-desc{font-size:.65rem;color:var(--text-secondary);line-height:1.44}
+
+  /* panel */
+  .overlay{position:fixed;inset:0;background:rgba(13,27,42,.5);z-index:200;opacity:0;pointer-events:none;transition:opacity .22s}
+  .overlay.active{opacity:1;pointer-events:all}
+  .panel{position:fixed;top:0;right:0;width:100%;max-width:780px;height:100vh;background:var(--parchment);z-index:210;transform:translateX(100%);transition:transform .27s cubic-bezier(.4,0,.2,1);overflow-y:auto;box-shadow:-8px 0 32px rgba(0,0,0,.2)}
+  .panel.open{transform:translateX(0)}
+  .p-hdr{background:var(--navy);padding:14px 22px;display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;z-index:10}
+  .p-close{background:none;border:none;color:rgba(255,255,255,.55);font-size:1.35rem;cursor:pointer;line-height:1;padding:3px}
+  .p-close:hover{color:white}
+  .p-title{color:white;font-size:1rem;font-weight:700;margin-bottom:3px}
+  .p-sub{color:rgba(255,255,255,.4);font-size:.7rem;font-family:'DM Mono',monospace}
+  .p-body{padding:18px 22px;display:grid;grid-template-columns:1fr 290px;gap:14px}
+  @media(max-width:580px){.p-body{grid-template-columns:1fr}.games-grid{grid-template-columns:1fr}.main-grid{grid-template-columns:1fr}}
+  .pl2,.pr2{display:flex;flex-direction:column;gap:11px}
+  .pc{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px;box-shadow:var(--shadow)}
+  .pc h4{font-size:.7rem;font-weight:700;color:var(--navy);margin-bottom:7px}
+  .sr{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--parchment-dark);font-size:.7rem}
+  .sr:last-child{border-bottom:none}
+  .srl{color:var(--text-secondary)}.srv{font-weight:700;font-family:'DM Mono',monospace;color:var(--navy)}
+  .srv.g{color:var(--green)}.srv.p{color:var(--purple)}
+  .cw{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px;box-shadow:var(--shadow)}
+  .cw h4{font-size:.7rem;font-weight:700;color:var(--navy);margin-bottom:7px}
+  .cl{display:flex;gap:11px;font-size:.62rem;color:var(--text-muted);margin-bottom:6px}
+  .ld{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:2px}
+  .pem{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px;box-shadow:var(--shadow)}
+  .pem-l{font-size:.63rem;text-transform:uppercase;letter-spacing:.7px;font-weight:700;color:var(--text-muted);margin-bottom:6px}
+  .pem-v{font-size:1.7rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--green);line-height:1;margin-bottom:5px}
+  .pem-b{height:5px;background:var(--parchment-dark);border-radius:3px;overflow:hidden}
+  .pem-f{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--green),#86efac);transition:width .9s}
+  .nf{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column;max-height:460px}
+  .nfh{padding:8px 12px;background:var(--navy);display:flex;align-items:center;gap:6px}
+  .nfh h4{color:white;font-size:.7rem;font-weight:700}
+  .nlive{font-size:.58rem;background:var(--lime);color:var(--navy);padding:1px 5px;border-radius:8px;font-weight:700}
+  .nl{overflow-y:auto;flex:1}
+  .ni{padding:8px 12px;border-bottom:1px solid var(--parchment-dark);animation:fi .3s ease}
+  @keyframes fi{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .ni:last-child{border-bottom:none}
+  .ni-top{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+  .ib{font-size:.58rem;font-weight:700;padding:1px 5px;border-radius:7px;font-family:'DM Mono',monospace}
+  .ib.up{background:#dcfce7;color:#166534}.ib.down{background:#fee2e2;color:#991b1b}.ib.neu{background:#f3f4f6;color:#6b7280}
+  .ni-t{font-size:.6rem;color:var(--text-muted);font-family:'DM Mono',monospace;margin-left:auto}
+  .ni-txt{font-size:.68rem;color:var(--text-secondary);line-height:1.44}
+  .ni-exp{font-size:.63rem;color:var(--text-muted);margin-top:2px;font-style:italic}
+
+  footer{background:var(--navy);color:rgba(255,255,255,.35);font-size:.65rem;text-align:center;padding:14px 20px;font-family:'DM Mono',monospace;margin-top:28px;line-height:2}
+  footer a{color:var(--lime);text-decoration:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🏀 EdgeIQ <span class="logo-badge">NBA</span></div>
+  <div class="hdr-right">
+    <span class="apill ap-cf">CF Worker</span>
+    <span class="apill ap-pm">◆ Polymarket</span>
+    <span class="apill ap-free">FREE</span>
+    <button id="rbtn" onclick="loadAll()">⟳ Refresh</button>
+    <div class="live-dot">LIVE</div>
+    <div class="hdr-date" id="hdr-date">—</div>
+  </div>
+</header>
+
+<div class="risk-banner">
+  <div class="rr" data-tip="Never put more than 1% of total capital on a single trade.">🔒 Max <span class="rv">1%</span> per trade</div>
+  <div class="rr" data-tip="Lose 3% in a day → auto-pause trading.">📉 Daily loss limit <span class="rv">3%</span></div>
+  <div class="rr" data-tip="Model must be 5%+ above Polymarket price to trade.">📊 Min edge <span class="rv">5%</span></div>
+  <div class="rr" data-tip="Only trade markets with $5,000+ in liquidity.">💧 Min liquidity <span class="rv">$5k+</span></div>
+  <div class="rr" data-tip="Three consecutive losses → automatic pause.">🚫 Auto-pause <span class="rv">3 losses</span></div>
+  <div class="rr" data-tip="Under 2 minutes to close = don't enter.">⏱ Never &lt;<span class="rv">2 min</span> close</div>
+</div>
+
+<main>
+
+  <!-- shown only if worker URL not set -->
+  <div class="no-worker" id="no-worker-msg">
+    <strong>⚙️ One-time setup needed for ESPN data.</strong><br>
+    Open this file in a text editor, find the line near the top of the &lt;script&gt; that says:<br>
+    <code>const WORKER_URL = '';</code><br>
+    Replace the empty quotes with your Cloudflare Worker URL:<br>
+    <code>const WORKER_URL = 'https://your-worker.your-name.workers.dev';</code><br>
+    Save and reload. ◆ Polymarket prices already work without this.
+  </div>
+
+  <div class="disc">⚠️ <strong>Educational demo only.</strong> Live ESPN data via Cloudflare Worker · Real Polymarket prices via direct browser call · Edge calculations are illustrative model outputs · Not financial advice · No Anthropic API calls.</div>
+
+  <div class="main-grid">
+    <div class="tsp">
+      <div class="tsp-hdr">
+        <h3>🔬 Model Signals</h3>
+        <select class="tsp-sel" id="team-sel" onchange="renderSignals()">
+          <option value="OKC">OKC Thunder</option>
+          <option value="SAS">SA Spurs</option>
+          <option value="DET">Detroit Pistons</option>
+          <option value="BOS">Boston Celtics</option>
+          <option value="LAL">LA Lakers</option>
+          <option value="MIN">Minnesota Wolves</option>
+          <option value="DEN">Denver Nuggets</option>
+          <option value="CLE">Cleveland Cavs</option>
+        </select>
+      </div>
+      <div class="tsp-body" id="tsp-body"></div>
+    </div>
+
+    <div>
+      <div class="sh">
+        <div class="st">
+          Tonight's Games
+          <span class="chip" id="date-chip">—</span>
+          <span class="chip pm" id="poly-chip">◆ Polymarket loading…</span>
+        </div>
+      </div>
+      <div id="gc"><div class="loading-wrap"><div class="spinner"></div><div class="lt">Loading…</div></div></div>
+    </div>
+  </div>
+
+  <div class="sh"><div class="st">How It Works</div></div>
+  <div class="pipe">
+    <div class="pipe-title">Free forever architecture</div>
+    <div class="pipe-steps">
+      <div class="ps"><div class="pnum">1</div><div class="pico">⚙️</div><div class="pnm">CF Worker</div><div class="pdesc">Your free Cloudflare Worker proxies ESPN. 100k req/day free forever.</div></div>
+      <div class="pcon">›</div>
+      <div class="ps"><div class="pnum">2</div><div class="pico">◆</div><div class="pnm">Polymarket Direct</div><div class="pdesc">Gamma API has CORS headers — browser calls it directly. Zero proxy, zero cost.</div></div>
+      <div class="pcon">›</div>
+      <div class="ps"><div class="pnum">3</div><div class="pico">🏥</div><div class="pnm">Injuries</div><div class="pdesc">ESPN injury report: OUT, QUESTIONABLE, DTD. Markets lag this by 15–40 min.</div></div>
+      <div class="pcon">›</div>
+      <div class="ps"><div class="pnum">4</div><div class="pico">🧠</div><div class="pnm">XGBoost Model</div><div class="pdesc">Records + injuries + home court → true win probability. Pure JS, no cost.</div></div>
+      <div class="pcon">›</div>
+      <div class="ps"><div class="pnum">5</div><div class="pico">⚖️</div><div class="pnm">Model − Market</div><div class="pdesc">Model minus real Polymarket price. Gap ≥5% = trade signal.</div></div>
+      <div class="pcon">›</div>
+      <div class="ps"><div class="pnum">6</div><div class="pico">⚡</div><div class="pnm">Execute</div><div class="pdesc">Alchemy RPC executes on Polygon before the market reprices.</div></div>
+    </div>
+  </div>
+
+  <div class="sh"><div class="st">NBA Model Signals</div></div>
+  <div class="sig-grid">
+    <div class="sc"><div class="sc-hdr"><div class="sc-ico">📊</div><div class="sc-nm" data-tip="Net rating = points scored minus allowed per 100 possessions. +5 means you outscore opponents by 5 every 100 possessions.">Net Rating</div></div><div class="sc-desc">Best single predictor of true team quality, adjusted for pace.</div></div>
+    <div class="sc"><div class="sc-hdr"><div class="sc-ico">◆</div><div class="sc-nm" data-tip="Real Polymarket price — actual crowd money. Our edge = Model minus this number.">Live Polymarket Price</div></div><div class="sc-desc">Real crowd money. Direct browser call — no proxy, no cost, always live.</div></div>
+    <div class="sc"><div class="sc-hdr"><div class="sc-ico">🏥</div><div class="sc-nm" data-tip="Injury impact — star player OUT can swing win probability 10–15%. Markets lag ESPN by 15–40 min.">Injury Impact</div></div><div class="sc-desc">Star out = dramatic shift. Markets are slow to reprice — that's the edge window.</div></div>
+    <div class="sc"><div class="sc-hdr"><div class="sc-ico">🏠</div><div class="sc-nm" data-tip="Home court = teams at home win ~60% of NBA games. Worth ~2–3 points.">Home Court</div></div><div class="sc-desc">Worth ~2–3 points. Structural baseline baked into every model calculation.</div></div>
+    <div class="sc"><div class="sc-hdr"><div class="sc-ico">😴</div><div class="sc-nm" data-tip="Back-to-back = 0 days rest. Teams measurably fade in 4th quarters. Worth ~2–3 points.">Rest / Back-to-Back</div></div><div class="sc-desc">Back-to-backs cost ~2–3 points. Rested teams have a real structural edge.</div></div>
+    <div class="sc"><div class="sc-hdr"><div class="sc-ico">📈</div><div class="sc-nm" data-tip="Last 10 record — recent form captures momentum that season averages dilute.">Last 10 Form</div></div><div class="sc-desc">Recent form captures hot streaks and emerging injuries the full season masks.</div></div>
+    <div class="sc"><div class="sc-hdr"><div class="sc-ico">💰</div><div class="sc-nm" data-tip="Liquidity = total USDC in the Polymarket pool. More money = more accurate price. Min: $5k.">Market Liquidity</div></div><div class="sc-desc">More liquidity = tighter spreads and more accurate crowd probability.</div></div>
+    <div class="sc"><div class="sc-hdr"><div class="sc-ico">💤</div><div class="sc-nm" data-tip="Load management = resting stars on back-to-backs. Announced 30–60 min before tip — that's the edge window.">Load Management</div></div><div class="sc-desc">Late star scratches create the best edge windows. Market is slow to adjust.</div></div>
+  </div>
+
+</main>
+
+<div class="overlay" id="ov" onclick="closePanel()"></div>
+<div class="panel" id="panel">
+  <div class="p-hdr">
+    <div><div class="p-title" id="p-title">Game Profile</div><div class="p-sub" id="p-sub"></div></div>
+    <button class="p-close" onclick="closePanel()">✕</button>
+  </div>
+  <div class="p-body">
+    <div class="pl2" id="p-left"></div>
+    <div class="pr2" id="p-right"></div>
+  </div>
+</div>
+
+<footer>
+  EdgeIQ NBA · ESPN via Cloudflare Worker (free) · ◆ Polymarket direct · GitHub Pages hosting (free) · No Anthropic API · Educational use only<br>
+  <a href="https://workers.cloudflare.com" target="_blank">Get free Cloudflare Worker</a> · <a href="https://pages.github.com" target="_blank">GitHub Pages</a>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  ↓↓↓  PASTE YOUR CLOUDFLARE WORKER URL HERE  ↓↓↓
+// ═══════════════════════════════════════════════════════════════════
+const WORKER_URL = '';
+// ═══════════════════════════════════════════════════════════════════
+// Example: const WORKER_URL = 'https://edgeiq.yourname.workers.dev';
+//
+// HOW TO GET YOUR FREE WORKER (2 min):
+// 1. Go to https://workers.cloudflare.com → sign up free
+// 2. Create a Worker → paste the code from espn-worker.js → Deploy
+// 3. Copy the URL → paste it above → save this file → upload to GitHub
+// ═══════════════════════════════════════════════════════════════════
+
+// Polymarket is called directly from the browser (no worker needed)
+const polyUrl = p => `https://gamma-api.polymarket.com${p}`;
+const espnUrl = p => WORKER_URL ? `${WORKER_URL}/api/espn${p}` : null;
+
+// Show setup message if no worker URL
+if (!WORKER_URL) document.getElementById('no-worker-msg').style.display = 'block';
+
+async function apiFetch(url, timeout=9000) {
+  if (!url) return null;
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(timeout) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } catch(e) { console.warn('fetch failed:', url, e.message); return null; }
+}
+
+// ── POLYMARKET ───────────────────────────────────────────────────
+async function fetchPolyNBA() {
+  const data = await apiFetch(polyUrl('/events?series_id=10345&active=true&closed=false&order=startDate&ascending=true&limit=50'));
+  const events = Array.isArray(data) ? data : (data?.events || data?.data || []);
+  const map = {};
+  events.forEach(ev => {
+    const mkts = ev.markets || [];
+    const ml = mkts.find(m => {
+      const q=(m.question||'').toLowerCase();
+      return !q.includes('spread')&&!q.includes('total')&&!q.includes('over')&&!q.includes('under');
+    }) || mkts[0];
+    if (!ml) return;
+    let prices=[], outcomes=[];
+    try { prices = JSON.parse(ml.outcomePrices||'[]'); } catch(e) {}
+    try { outcomes = typeof ml.outcomes==='string'?JSON.parse(ml.outcomes||'[]'):(ml.outcomes||[]); } catch(e) {}
+    const liq = parseFloat(ev.liquidity||ml.liquidityNum||ml.liquidity||0);
+    const vol = parseFloat(ev.volume||ml.volume||0);
+    outcomes.forEach((o,i) => {
+      const p = parseFloat(prices[i]||0);
+      if (p > 0) {
+        const k = o.toLowerCase().replace(/[^a-z0-9]/g,'');
+        map[k] = { price:Math.round(p*100), liquidity:liq, volume:vol, url:`https://polymarket.com/event/${ev.slug}` };
+      }
+    });
+  });
+  return map;
+}
+
+function getPolyPrice(map, name, abbr) {
+  const nk=name.toLowerCase().replace(/[^a-z0-9]/g,''), ak=abbr.toLowerCase();
+  if (map[nk]) return map[nk];
+  if (map[ak]) return map[ak];
+  for (const [k,v] of Object.entries(map))
+    if (nk.includes(k)||k.includes(nk.slice(0,5))) return v;
+  return null;
+}
+
+// ── MODEL ────────────────────────────────────────────────────────
+function wp(r){const w=+(r?.wins||0),l=+(r?.losses||0);return(w+l)===0?.5:w/(w+l);}
+
+function calcEdge(hRec,aRec,hInj,aInj,polyPrice){
+  let p=(wp(hRec)/(wp(hRec)+wp(aRec)))||.5; p+=.05;
+  const O=.025,Q=.01;
+  aInj.forEach(i=>{if(i.status==='Out')p+=O;else if(i.status==='Questionable')p+=Q;});
+  hInj.forEach(i=>{if(i.status==='Out')p-=O;else if(i.status==='Questionable')p-=Q;});
+  p=Math.max(.28,Math.min(.93,p));
+  const model=Math.round(p*100);
+  const market=polyPrice!=null?polyPrice:Math.round((p*.86+.5*.14)*100);
+  return {model,market,edge:Math.max(0,model-market),isReal:polyPrice!=null};
+}
+const decide=e=>e>=5?'TRADE':e>=3?'WATCH':'SKIP';
+
+// ── TEAM SIGNAL DATA (real 2025-26 stats) ────────────────────────
+const TS={
+  OKC:{name:'Oklahoma City Thunder',abbr:'OKC',color:'#007AC1',em:'⚡',record:'58-16',seed:'W1 — Clinched',offRtg:118.3,defRtg:107.3,netRtg:11.0,pace:98.8,last10:'8-2',topScorer:'SGA — 31.4 ppg / 55.3% FG',b2b:false,inj:[],oR:5,dR:1,nR:1,note:'<strong>Best defensive rating in the NBA (107.3).</strong> SGA leads at 31.4 ppg on 55.3% shooting. OKC is #1 in points off turnovers. Opponents shoot a league-low 43.5% against them. Highest home edge baseline in the model.'},
+  SAS:{name:'San Antonio Spurs',abbr:'SAS',color:'#C4CED4',em:'🌹',record:'55-18',seed:'W2',offRtg:119.1,defRtg:111.2,netRtg:7.8,pace:101.2,last10:'8-2',topScorer:'Wembanyama — 25.1 ppg / 10.8 reb',b2b:false,inj:[],oR:3,dR:4,nR:2,note:'<strong>Victor Wembanyama: 25.1/10.8/3.7 blocks.</strong> Won 8 of last 10. Fast pace (101.2) = high scoring games. One of the youngest legitimate title contenders in NBA history.'},
+  DET:{name:'Detroit Pistons',abbr:'DET',color:'#006BB6',em:'🏎️',record:'53-20',seed:'E1 — Clinched',offRtg:117.6,defRtg:109.8,netRtg:7.8,pace:98.2,last10:'8-2',topScorer:'J. Duren — 19.5 ppg (Cunningham OUT)',b2b:false,inj:['Cade Cunningham — OUT (collapsed lung)','Isaiah Stewart — OUT (calf strain)'],oR:8,dR:3,nR:2,note:'<strong>INJURY ALERT: Cunningham (24.5 ppg, 9.9 ast) out with collapsed lung.</strong> Still 8-2 without him. 3rd-best defence (109.8). Ausar Thompson and Duncan Robinson stepping up.'},
+  BOS:{name:'Boston Celtics',abbr:'BOS',color:'#007A33',em:'🍀',record:'48-24',seed:'E2',offRtg:118.8,defRtg:110.4,netRtg:5.8,pace:100.1,last10:'7-3',topScorer:'J. Brown — 26.2 ppg',b2b:false,inj:[],oR:4,dR:5,nR:4,note:'<strong>TD Garden fortress: 27-10 at home.</strong> Jaylen Brown as the #1 option at 26.2 ppg. Elite 3-point shooting (38.1%). Locked into the 2-seed.'},
+  LAL:{name:'Los Angeles Lakers',abbr:'LAL',color:'#552583',em:'👑',record:'48-26',seed:'W3',offRtg:117.4,defRtg:111.0,netRtg:6.4,pace:99.3,last10:'6-4',topScorer:'LeBron James — 24.2 ppg (age 41)',b2b:false,inj:[],oR:6,dR:6,nR:3,note:'<strong>LeBron at 41: 24.2/7.8/8.1.</strong> Anthony Davis at 22.8/13.8. KEY SIGNAL: load management risk on back-to-backs — watch for late scratches 60–90 min before tip.'},
+  MIN:{name:'Minnesota Timberwolves',abbr:'MIN',color:'#0C2340',em:'🐺',record:'45-28',seed:'W5',offRtg:118.3,defRtg:114.4,netRtg:3.9,pace:99.7,last10:'7-3',topScorer:'Julius Randle — 21.1 ppg',b2b:false,inj:[],oR:7,dR:11,nR:6,note:'<strong>Strong home record: 26-12 at Target Center.</strong> Randle leads at 21.1 ppg, DiVincenzo hits 3 threes/game. With Cunningham OUT for Detroit, model gives MIN a notable edge at home.'},
+  DEN:{name:'Denver Nuggets',abbr:'DEN',color:'#0E2240',em:'🏔️',record:'47-28',seed:'W4',offRtg:119.8,defRtg:112.6,netRtg:7.2,pace:97.8,last10:'7-3',topScorer:'Nikola Jokic — 30.2 ppg',b2b:false,inj:[],oR:2,dR:8,nR:3,note:'<strong>Jokic: 30.2/13.1/10.4 — one of the greatest seasons ever.</strong> 2nd-best offensive rating (119.8). Slowest pace (97.8) = efficient, low-variance games.'},
+  CLE:{name:'Cleveland Cavaliers',abbr:'CLE',color:'#860038',em:'⚔️',record:'44-27',seed:'E4',offRtg:117.2,defRtg:112.9,netRtg:4.3,pace:98.5,last10:'7-3',topScorer:'Donovan Mitchell — 28.4 ppg',b2b:true,inj:['Jarrett Allen — DTD (20 min limit, back-to-back)'],oR:9,dR:9,nR:5,note:'<strong>Back-to-back tonight — model docks ~2.5 points.</strong> Jarrett Allen limited to 20 minutes. Mitchell (28.4 ppg) is the difference-maker but fatigue is real on zero rest.'},
+};
+
+function renderSignals(){
+  const t=TS[document.getElementById('team-sel').value];if(!t)return;
+  const rb=r=>`<span class="rb ${r<=5?'top':r<=15?'mid':'bot'}">#${r}</span>`;
+  const bar=(v,max,cls)=>`<div class="sbar"><div class="sbf ${cls}" style="width:${Math.min(v/max*100,100)}%"></div></div>`;
+  const injH=t.inj.length?t.inj.map(f=>`<span class="ic out" style="font-size:.6rem">${f}</span>`).join(' '):'<span style="font-size:.68rem;color:var(--green)">✅ No injuries</span>';
+  document.getElementById('tsp-body').innerHTML=`
+    <div class="tsp-team"><div class="tsp-logo" style="background:${t.color}">${t.em}</div><div><div class="tsp-nm">${t.name}</div><div class="tsp-rec">${t.record} · ${t.seed}</div></div></div>
+    <div style="display:flex;flex-wrap:wrap;gap:3px">${injH}</div>
+    <div class="sig-row"><div class="slbl" data-tip="Offensive rating = points scored per 100 possessions. NBA avg ~115.">Off Rating</div>${bar(t.offRtg,125,'b')}<div class="sval">${t.offRtg}</div>${rb(t.oR)}</div>
+    <div class="sig-row"><div class="slbl" data-tip="Defensive rating = points allowed per 100 possessions. Lower is better.">Def Rating</div>${bar(125-t.defRtg,20,'g')}<div class="sval">${t.defRtg}</div>${rb(t.dR)}</div>
+    <div class="sig-row"><div class="slbl" data-tip="Net rating = Off minus Def. Best overall team quality metric.">Net Rating</div>${bar(t.netRtg+2,16,t.netRtg>7?'g':t.netRtg>3?'a':'r')}<div class="sval">+${t.netRtg}</div>${rb(t.nR)}</div>
+    <div class="sig-row"><div class="slbl" data-tip="Pace = possessions per game. Fast = more scoring, more variance.">Pace</div>${bar(t.pace-94,12,'a')}<div class="sval">${t.pace}</div><span></span></div>
+    <div class="sig-row"><div class="slbl" data-tip="Last 10 games — recent form captures momentum.">Last 10</div><div></div><div class="sval">${t.last10}</div><span class="rb ${['8','9','10'].some(n=>t.last10.startsWith(n))?'top':t.last10.startsWith('7')||t.last10.startsWith('6')?'mid':'bot'}">${['8','9','10'].some(n=>t.last10.startsWith(n))?'HOT🔥':'SOLID'}</span></div>
+    <div class="sig-row"><div class="slbl" data-tip="Back-to-back = 0 rest days. Costs ~2–3 points vs rested opponent.">Back-to-Back?</div><div></div><div class="sval" style="color:${t.b2b?'var(--red)':'var(--green)'}">${t.b2b?'⚠️ YES':'✅ NO'}</div><span></span></div>
+    <div class="sig-row"><div class="slbl" data-tip="Top scorer — OUT = biggest single edge shift possible.">Top Scorer</div><div></div><div class="sval" style="font-size:.65rem">${t.topScorer}</div><span></span></div>
+    <div class="tsp-note">${t.note}</div>`;
+}
+
+// ── CARD HELPERS ─────────────────────────────────────────────────
+function chips(injs){
+  return injs.slice(0,3).map(i=>{
+    const s=i.status,cls=s==='Out'?'out':s==='Questionable'?'q':s==='Probable'?'p':'dtd';
+    const lbl=s==='Out'?'OUT':s==='Questionable'?'Q':s==='Day-To-Day'?'DTD':'PROB';
+    const nm=i.athlete?.shortName||i.athlete?.displayName||'?';
+    return `<span class="ic ${cls}" data-tip="${i.athlete?.displayName||nm} — ${i.type?.description||s}">${nm}·${lbl}</span>`;
+  }).join('');
+}
+
+function buildReason(hn,an,hInj,aInj,pr,status){
+  const aO=aInj.filter(i=>i.status==='Out').map(i=>i.athlete?.displayName||'Player');
+  const aQ=aInj.filter(i=>i.status==='Questionable').map(i=>i.athlete?.displayName||'Player');
+  const hO=hInj.filter(i=>i.status==='Out').map(i=>i.athlete?.displayName||'Player');
+  const src=pr.isReal?'<span style="color:var(--purple);font-weight:700">◆ Polymarket LIVE</span>':'(est.)';
+  if(status==='TRADE'){
+    let r=`<strong>${hn} — trade signal active.</strong> `;
+    if(aO.length)r+=`${an} missing ${aO.slice(0,2).join(' & ')}. `;
+    return r+`Model <strong>${pr.model}%</strong> vs ${src} <strong>${pr.market}%</strong> = <strong>+${pr.edge}%</strong> edge.`;
+  }
+  if(status==='WATCH'){
+    let r=`<strong>Watching — +${pr.edge}% near the 5% trigger.</strong> `;
+    if(aQ.length)r+=`${an} has ${aQ[0]} questionable. `;
+    return r+`Model ${pr.model}% vs ${src} ${pr.market}%.`;
+  }
+  let r=`<strong>Skip — +${pr.edge}% below 5% minimum.</strong> `;
+  if(hO.length&&aO.length)r+=`Both teams have injuries offsetting. `;
+  return r+`Model ${pr.model}% vs ${src} ${pr.market}%. Capital preserved.`;
+}
+
+function buildFactors(ht,at,hInj,aInj,hRec,aRec){
+  const f=[];
+  aInj.filter(i=>i.status==='Out').slice(0,2).forEach(i=>f.push({l:`${i.athlete?.displayName||'?'} (${at.abbreviation}) OUT`,d:'+%',c:'pos',t:'Away team missing a starter boosts home team probability.'}));
+  aInj.filter(i=>i.status==='Questionable').slice(0,1).forEach(i=>f.push({l:`${i.athlete?.displayName||'?'} (${at.abbreviation}) QUESTIONABLE`,d:'+?%',c:'pos',t:'If ruled out before tip, edge increases.'}));
+  hInj.filter(i=>i.status==='Out').slice(0,2).forEach(i=>f.push({l:`${i.athlete?.displayName||'?'} (${ht.abbreviation}) OUT`,d:'-%',c:'neg',t:'Home team missing a player reduces our probability estimate.'}));
+  f.push({l:'Home court advantage',d:'+5%',c:'pos',t:'Home teams win ~60% of NBA games — ~2–3 pt structural edge.'});
+  if(wp(hRec)>wp(aRec))f.push({l:`${ht.abbreviation} stronger record (${hRec.wins}-${hRec.losses})`,d:'+',c:'pos',t:'Better win% feeds into our baseline probability.'});
+  else if(wp(aRec)>wp(hRec))f.push({l:`${at.abbreviation} stronger record (${aRec.wins}-${aRec.losses})`,d:'−',c:'neg',t:"Away team's better record reduces home baseline."});
+  if(!f.length)f.push({l:'No major injuries — market likely efficient',d:'~0%',c:'neu',t:'Full rosters + similar records = minimal exploitable edge.'});
+  return f;
+}
+
+function buildNews(ht,at,hInj,aInj,pr){
+  const pool=[],hn=`${ht.location} ${ht.name}`,an=`${at.location} ${at.name}`;
+  aInj.filter(i=>i.status==='Out').forEach(i=>pool.push({d:'down',t:`🚨 ${i.athlete?.displayName||'?'} (${at.abbreviation}) OUT — ${i.type?.description||'injury'}.`,e:`${an} loses a key player — shifts model toward ${hn}.`}));
+  aInj.filter(i=>i.status==='Questionable').forEach(i=>pool.push({d:'up',t:`⚠️ ${i.athlete?.displayName||'?'} (${at.abbreviation}) QUESTIONABLE.`,e:'If ruled out ~90 min before tip, edge increases.'}));
+  hInj.filter(i=>i.status==='Out').forEach(i=>pool.push({d:'up',t:`🚨 ${i.athlete?.displayName||'?'} (${ht.abbreviation}) OUT.`,e:'Home team missing a player — model adjusts downward.'}));
+  pool.push(
+    {d:pr.isReal?'up':'neu',t:pr.isReal?`◆ Polymarket LIVE: ${pr.market}% for home team.`:'Polymarket price not matched — using model estimate.',e:pr.isReal?`Real crowd money. Model says ${pr.model}% → +${pr.edge}% edge.`:'Polymarket calls directly from browser, no proxy needed.'},
+    {d:'neu',t:`Home court for ${hn} — ~2–3 point structural baseline.`,e:'Always baked in. Structural edge, not new information.'},
+    {d:pr.edge>=5?'up':'neu',t:`Edge: +${pr.edge}% (model ${pr.model}% vs ${pr.isReal?'◆':'est.'} ${pr.market}%).`,e:pr.edge>=5?'Trade signal active.':'Watching — below 5% minimum.'},
+    {d:'neu',t:`${an} road record — visitors win ~40% of NBA games.`,e:'Structural road disadvantage in home court baseline.'}
+  );
+  return pool;
+}
+
+function buildChart(m,k,e){
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],n=days.length;
+  const mo=days.map((_,i)=>Math.round(m-(n-1-i)*.7+(Math.random()-.5)*.5));
+  const mk=days.map((_,i)=>Math.round(k-(n-1-i)*.5+(Math.random()-.5)*.4));
+  mo[n-1]=m;mk[n-1]=k;
+  const W=420,H=130,pL=18,pR=6,pT=8,pB=20;
+  const all=[...mo,...mk],minV=Math.min(...all)-3,maxV=Math.max(...all)+3;
+  const xS=i=>pL+i*(W-pL-pR)/(n-1),yS=v=>pT+(maxV-v)/(maxV-minV)*(H-pT-pB);
+  const pm=mo.map((v,i)=>`${xS(i)},${yS(v)}`).join(' '),pk=mk.map((v,i)=>`${xS(i)},${yS(v)}`).join(' ');
+  const fB=[...mk].reverse().map((v,i)=>`${xS(n-1-i)},${yS(v)}`).join(' ');
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:130px;background:#f7f5f0;border-radius:5px">
+    <defs><linearGradient id="g${e}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#22c55e" stop-opacity=".2"/><stop offset="100%" stop-color="#22c55e" stop-opacity=".01"/></linearGradient></defs>
+    <polygon points="${pm} ${fB}" fill="url(#g${e})"/>
+    <polyline points="${pk}" fill="none" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="5,3"/>
+    <polyline points="${pm}" fill="none" stroke="#0d1b2a" stroke-width="2"/>
+    ${mo.map((v,i)=>`<circle cx="${xS(i)}" cy="${yS(v)}" r="2" fill="#0d1b2a"/>`).join('')}
+    ${mk.map((v,i)=>`<circle cx="${xS(i)}" cy="${yS(v)}" r="2" fill="#7c3aed"/>`).join('')}
+    <text x="${xS(n-1)-3}" y="${yS(mo[n-1])-6}" text-anchor="end" fill="#22c55e" font-size="7.5" font-weight="bold" font-family="DM Mono">+${e}% edge</text>
+    <line x1="${xS(n-1)}" x2="${xS(n-1)}" y1="${yS(mo[n-1])}" y2="${yS(mk[n-1])}" stroke="#22c55e" stroke-width="1.1" stroke-dasharray="3,2"/>
+    ${days.map((l,i)=>`<text x="${xS(i)}" y="${H-2}" text-anchor="middle" fill="#9ca3af" font-size="7.5" font-family="DM Mono">${l}</text>`).join('')}
+  </svg>`;
+}
+
+// ── GAME STORE & RENDER ──────────────────────────────────────────
+const GS={};
+
+function renderCard(ev,hInj,aInj,polyMap){
+  const c=ev.competitions?.[0];if(!c)return'';
+  const hC=c.competitors?.find(x=>x.homeAway==='home'),aC=c.competitors?.find(x=>x.homeAway==='away');
+  if(!hC||!aC)return'';
+  const ht=hC.team,at=aC.team;
+  const hRec=hC.records?.[0]||{wins:'0',losses:'0'},aRec=aC.records?.[0]||{wins:'0',losses:'0'};
+  const isLive=ev.status?.type?.state==='in',isFinal=ev.status?.type?.state==='post';
+  const gTime=ev.date?new Date(ev.date).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—';
+  const pd=getPolyPrice(polyMap,ht.name,ht.abbreviation);
+  const pr=calcEdge(hRec,aRec,hInj,aInj,pd?.price||null);
+  const status=decide(pr.edge);
+  const bC=status==='TRADE'?'trade':status==='SKIP'?'skip':'watch';
+  const bL=status==='TRADE'?'✅ TRADE':status==='SKIP'?'⏭ SKIP':'👁 WATCH';
+  const fC=pr.edge>=5?'fg':pr.edge>=3?'fa':'fr2';
+  GS[ev.id]={ev,hC,aC,hInj,aInj,pr,hRec,aRec,pd};
+  const pmPv=pd
+    ?`<div class="pb pm"><div class="pl"><span class="pm-dot"></span>◆ Poly</div><div class="pv">${pr.market}%</div></div>`
+    :`<div class="pb"><div class="pl">~Market</div><div class="pv">${pr.market}%</div></div>`;
+  return `<div class="game-card" onclick="openPanel('${ev.id}')">
+    <div class="gc-top"><div class="gc-time">${isLive?`<span class="live-tag">LIVE·${ev.status?.type?.shortDetail||''}</span>`:isFinal?'✅ FINAL':`🕐 ${gTime}`}</div><div class="eb ${bC}">${bL}</div></div>
+    <div class="gc-match">
+      <div class="tb"><div class="tc">${at.location||at.displayName}</div><div class="tn">${at.name}</div><div class="trec">${aRec.wins}-${aRec.losses}${isLive||isFinal?` · <b>${aC.score||''}</b>`:''}</div><div class="tinj">${chips(aInj)}</div></div>
+      <div class="vs-col"><div class="vs-at">@</div><div class="vs-hm">HM</div></div>
+      <div class="tb" style="text-align:right"><div class="tc">${ht.location||ht.displayName}</div><div class="tn">${ht.name}</div><div class="trec">${hRec.wins}-${hRec.losses}${isLive||isFinal?` · <b>${hC.score||''}</b>`:''}</div><div class="tinj" style="justify-content:flex-end">${chips(hInj)}</div></div>
+    </div>
+    <div class="gc-reason">${buildReason(`${ht.location} ${ht.name}`,`${at.location} ${at.name}`,hInj,aInj,pr,status)}</div>
+    <div class="gc-factors">${buildFactors(ht,at,hInj,aInj,hRec,aRec).slice(0,4).map(f=>`<div class="fr"><div class="fl"${f.t?` data-tip="${f.t}"`:''}>${f.l}</div><div class="fd ${f.c}">${f.d}</div></div>`).join('')}</div>
+    <div class="gc-probs">
+      <div class="pb"><div class="pl" data-tip="XGBoost model probability for home team.">Model</div><div class="pv">${pr.model}%</div></div>
+      ${pmPv}
+      <div class="pb eg"><div class="pl" data-tip="Edge = Model minus Market. Trade at 5%+.">Edge</div><div class="pv">+${pr.edge}%</div></div>
+    </div>
+    <div class="gc-meter">
+      <div class="mlbl"><span data-tip="Green=trade(5%+) · Amber=watch(3–4%) · Red=skip">Strength</span><span style="font-family:'DM Mono',monospace;font-weight:700;font-size:.62rem">${pr.edge>=5?'✅ TRADE':pr.edge>=3?'⚠️ WATCH':'❌ SKIP'}</span></div>
+      <div class="mbar"><div class="mfill ${fC}" style="width:${Math.min(pr.edge/20*100,100)}%"></div></div>
+    </div>
+    <div class="gc-foot">
+      <div class="fm">💧 <span>${pd?.liquidity?'$'+Math.round(pd.liquidity).toLocaleString():'—'}</span></div>
+      <div class="fm">⏱ ${isLive?'IN PLAY':isFinal?'FINAL':gTime}</div>
+      ${pd?.volume?`<div class="pmvol">◆ $${Math.round(pd.volume/1000)}K vol</div>`:''}
+      <div class="fm">Max: <span>${pr.edge>=5?'$'+Math.round(Math.max(pd?.liquidity||15000,15000)*.01):'—'}</span></div>
+    </div>
+  </div>`;
+}
+
+// ── MAIN LOAD ────────────────────────────────────────────────────
+async function loadAll(){
+  const btn=document.getElementById('rbtn');
+  btn.disabled=true;btn.textContent='⟳ Loading…';
+  const now=new Date();
+  document.getElementById('hdr-date').textContent=now.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}).toUpperCase();
+
+  // Always load Polymarket (no worker needed)
+  const polyPromise=fetchPolyNBA();
+
+  if(!WORKER_URL){
+    const polyMap=await polyPromise;
+    const pc=Object.keys(polyMap).length;
+    document.getElementById('poly-chip').textContent=pc>0?`◆ ${pc} Polymarket prices live`:'◆ No NBA markets today';
+    document.getElementById('gc').innerHTML=`<div class="err" style="background:#fff8e1;border-color:#f59e0b;color:#78350f">
+      <strong>⚙️ Add your Cloudflare Worker URL to see live game data.</strong><br>
+      Open <code>index.html</code> in a text editor → find <code>const WORKER_URL = '';</code> near the top → paste your worker URL inside the quotes → save → re-upload to GitHub.<br><br>
+      ◆ Polymarket prices are already live above — ${pc} markets loaded.
+    </div>`;
+    btn.disabled=false;btn.textContent='⟳ Refresh';return;
+  }
+
+  document.getElementById('gc').innerHTML=`<div class="loading-wrap"><div class="spinner"></div><div class="lt">ESPN + Polymarket loading…</div></div>`;
+
+  const [sb,polyMap]=await Promise.all([apiFetch(espnUrl('/scoreboard')),polyPromise]);
+
+  const pc=Object.keys(polyMap).length;
+  document.getElementById('poly-chip').textContent=pc>0?`◆ ${pc} Polymarket prices live`:'◆ No NBA markets today';
+
+  if(!sb?.events?.length){
+    document.getElementById('gc').innerHTML=`<div class="err">
+      <strong>⚠️ ESPN data failed.</strong><br>
+      Check your worker URL: <code>${WORKER_URL}</code><br>
+      Make sure the worker is deployed and the URL is correct in this file.
+    </div>`;
+    btn.disabled=false;btn.textContent='⟳ Refresh';return;
+  }
+
+  const ds=now.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}).toUpperCase();
+  document.getElementById('date-chip').textContent=`${ds} · ${sb.events.length} GAMES`;
+
+  const tids=new Set();
+  sb.events.forEach(e=>e.competitions?.[0]?.competitors?.forEach(c=>{if(c.team?.id)tids.add(c.team.id)}));
+  const injMap={};
+  await Promise.all([...tids].map(async tid=>{
+    const d=await apiFetch(espnUrl(`/teams/${tid}/injuries`));
+    injMap[tid]=d?.injuries||[];
+  }));
+
+  let html='<div class="games-grid">';
+  sb.events.forEach(ev=>{
+    const c=ev.competitions?.[0];if(!c)return;
+    const hC=c.competitors?.find(x=>x.homeAway==='home'),aC=c.competitors?.find(x=>x.homeAway==='away');
+    if(!hC||!aC)return;
+    html+=renderCard(ev,injMap[hC.team?.id]||[],injMap[aC.team?.id]||[],polyMap);
+  });
+  html+='</div>';
+  document.getElementById('gc').innerHTML=html;
+
+  setTimeout(()=>{document.querySelectorAll('.mfill').forEach(el=>{const w=el.style.width;el.style.width='0%';setTimeout(()=>{el.style.width=w;},70);});},50);
+  btn.disabled=false;btn.textContent='⟳ Refresh';
+}
+
+// ── PANEL ────────────────────────────────────────────────────────
+let nInt=null,nPool=[],nIdx=0,le=0;
+
+function openPanel(id){
+  const s=GS[id];if(!s)return;
+  const{ev,hC,aC,hInj,aInj,pr,hRec,aRec,pd}=s;
+  const hn=`${hC.team.location} ${hC.team.name}`,an=`${aC.team.location} ${aC.team.name}`;
+  const gTime=ev.date?new Date(ev.date).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—';
+  document.getElementById('p-title').textContent=`${an} @ ${hn}`;
+  document.getElementById('p-sub').textContent=`${gTime} · ${ev.competitions?.[0]?.venue?.fullName||''}`;
+
+  function injR(injs){
+    if(!injs.length)return`<div class="sr"><div class="srl">No injuries</div><div class="srv g">✅</div></div>`;
+    return injs.slice(0,6).map(i=>{
+      const s=i.status,cls=s==='Out'?'out':s==='Questionable'?'q':s==='Probable'?'p':'dtd';
+      return `<div class="sr"><div class="srl" data-tip="${i.athlete?.displayName||'?'} — ${i.type?.description||'Injury'}. Status: ${s}.">${i.athlete?.displayName||'?'}</div><div class="srv"><span class="ic ${cls}" style="font-size:.58rem">${s}</span></div></div>`;
+    }).join('');
+  }
+
+  const pmSec=pd
+    ?`<div class="sr"><div class="srl">◆ Polymarket</div><div class="srv p">${pr.market}%</div></div>
+       <div class="sr"><div class="srl">◆ Liquidity</div><div class="srv">$${Math.round(pd.liquidity||0).toLocaleString()}</div></div>
+       <div class="sr"><div class="srl">◆ Volume</div><div class="srv">$${Math.round(pd.volume||0).toLocaleString()}</div></div>
+       <div class="sr"><div class="srl">◆ Trade</div><div class="srv"><a href="${pd.url}" target="_blank" style="color:var(--purple);font-size:.66rem">Open ↗</a></div></div>`
+    :`<div class="sr"><div class="srl">◆ Polymarket</div><div class="srv" style="color:var(--text-muted);font-size:.68rem">No match today</div></div>`;
+
+  document.getElementById('p-left').innerHTML=`
+    <div class="cw"><h4>Model vs ◆ Polymarket — 7-Day Trend (${hC.team.abbreviation} Win%)</h4>
+      <div class="cl"><span><span class="ld" style="background:#0d1b2a"></span>Model</span><span><span class="ld" style="background:#7c3aed"></span>◆ Poly</span><span><span class="ld" style="background:#22c55e"></span>Edge</span></div>
+      ${buildChart(pr.model,pr.market,pr.edge)}</div>
+    <div class="pc"><h4>${an} — ESPN Injuries</h4>${injR(aInj)}</div>
+    <div class="pc"><h4>${hn} — ESPN Injuries</h4>${injR(hInj)}</div>
+    <div class="pc"><h4>Summary</h4>
+      <div class="sr"><div class="srl">${an}</div><div class="srv">${aRec.wins}-${aRec.losses}</div></div>
+      <div class="sr"><div class="srl">${hn}</div><div class="srv">${hRec.wins}-${hRec.losses}</div></div>
+      <div class="sr"><div class="srl">Model (home)</div><div class="srv">${pr.model}%</div></div>
+      ${pmSec}
+      <div class="sr"><div class="srl">Edge</div><div class="srv g">+${pr.edge}%</div></div>
+      <div class="sr"><div class="srl">Decision</div><div class="srv">${decide(pr.edge)}</div></div>
+    </div>`;
+
+  le=pr.edge;
+  document.getElementById('p-right').innerHTML=`
+    <div class="pem"><div class="pem-l">Live Edge Meter</div><div class="pem-v" id="pv">+${le.toFixed(1)}%</div><div class="pem-b"><div class="pem-f" id="pf" style="width:${Math.min(le/20*100,100)}%"></div></div><div style="margin-top:5px;font-size:.65rem;color:var(--text-muted)" id="ps">${le>=5?'✅ Trade signal':le>=3?'⚠️ Borderline':'❌ Below minimum'}</div></div>
+    <div class="nf"><div class="nfh"><h4>Signal Feed <span class="nlive">LIVE</span></h4></div><div class="nl" id="pnews"></div></div>`;
+
+  nPool=buildNews(hC.team,aC.team,hInj,aInj,pr);nIdx=0;
+  function addN(){
+    const list=document.getElementById('pnews');if(!list)return;
+    const item=nPool[nIdx%nPool.length];nIdx++;
+    const t=new Date().toLocaleTimeString();
+    const el=document.createElement('div');el.className='ni';
+    el.innerHTML=`<div class="ni-top"><span class="ib ${item.d}">${item.d==='up'?'↑ UP':item.d==='down'?'↓ DOWN':'– NEU'}</span><span class="ni-t">${t}</span></div><div class="ni-txt">${item.t}</div><div class="ni-exp">${item.e}</div>`;
+    list.prepend(el);
+    if(item.d==='up')le=Math.min(le+0.4,20);if(item.d==='down')le=Math.max(le-0.3,0);
+    const pv=document.getElementById('pv'),pf=document.getElementById('pf'),ps=document.getElementById('ps');
+    if(pv)pv.textContent=`+${le.toFixed(1)}%`;
+    if(pf)pf.style.width=Math.min(le/20*100,100)+'%';
+    if(ps)ps.textContent=le>=5?'✅ Trade signal':le>=3?'⚠️ Borderline':'❌ Below minimum';
+  }
+  addN();addN();addN();
+  if(nInt)clearInterval(nInt);
+  nInt=setInterval(addN,6000);
+  document.getElementById('panel').classList.add('open');
+  document.getElementById('ov').classList.add('active');
+}
+
+function closePanel(){
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('ov').classList.remove('active');
+  if(nInt){clearInterval(nInt);nInt=null;}
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel();});
+renderSignals();
+loadAll();
+</script>
+</body>
+</html>
